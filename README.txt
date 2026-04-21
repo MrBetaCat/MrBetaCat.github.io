@@ -14,7 +14,7 @@ Reading/rendering on the deployed site (https://mrbetacat.github.io/) does not r
 
 HANDOUT
 -------
-Page: http://localhost:3000/sprint-viewer.html
+Page: http://localhost:3000/ai-agent-course.html
 
 1. Select a topic from the sidebar (T1, T2, etc.)
 2. Click the "Handout" tab
@@ -27,7 +27,7 @@ File written to: content/handout/t{N}.md
 
 BLOG
 ----
-Page: http://localhost:3000/sprint-blog.html
+Page: http://localhost:3000/ai-blog.html
 
 1. Select a topic from the sidebar
 2. Fill in: Title, Subtitle, Date, Tags, Body (markdown)
@@ -36,12 +36,12 @@ Page: http://localhost:3000/sprint-blog.html
 
 File written to: content/blog/t{N}.md  (YAML frontmatter + markdown body)
 
-Preview at: http://localhost:3000/sprint-blog-preview.html
+Preview at: http://localhost:3000/ai-blog-preview.html
 
 
 CODE EXAMPLES
 -------------
-Page: http://localhost:3000/sprint-blog.html → Code tab
+Page: http://localhost:3000/ai-blog.html → Code tab
 
 1. Select a topic from the sidebar
 2. Click "+ Add Snippet"

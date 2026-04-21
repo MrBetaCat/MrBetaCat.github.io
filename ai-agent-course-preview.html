@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Viewer — Preview</title>
+<script src="sprint-storage.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;
+  --surface:#1a1d27;
+  --surface2:#22263a;
+  --accent:#7c6af7;
+  --accent-dim:#4e45a0;
+  --text:#e2e4ef;
+  --text-dim:#7a7f9a;
+  --border:#2a2e42;
+  --mono:'Courier New',Courier,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --serif:Georgia,'Times New Roman',serif;
+  --sidebar-w:220px;
+  --nav-h:48px;
+  --radius:6px;
+  --trans:100ms ease;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px}
+
+/* NAV */
+#nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;z-index:100;gap:12px;
+}
+.nav-title{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;letter-spacing:.03em}
+.nav-badge{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--accent-dim);color:#c0b8ff;padding:3px 8px;border-radius:20px;
+}
+#nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+#topic-jump{
+  background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--radius);padding:4px 8px;font-family:var(--mono);font-size:12px;cursor:pointer;
+}
+.nav-edit-link{
+  background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);
+  border-radius:var(--radius);padding:5px 12px;font-family:var(--mono);font-size:11px;
+  font-weight:600;text-decoration:none;transition:all var(--trans);white-space:nowrap;
+}
+.nav-edit-link:hover{color:var(--accent);border-color:var(--accent)}
+
+/* LOADING BAR */
+#loading-bar{
+  height:2px;background:var(--accent);position:fixed;top:var(--nav-h);left:0;width:0;
+  z-index:150;transition:width .3s ease,opacity .3s ease;
+}
+#loading-bar.active{width:70%}
+#loading-bar.done{width:100%;opacity:0}
+
+/* LAYOUT */
+#layout{display:flex;height:calc(100vh - var(--nav-h));margin-top:var(--nav-h);overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--surface);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  overflow:hidden;transition:width var(--trans),min-width var(--trans);
+}
+#sidebar.collapsed{width:40px;min-width:40px}
+#sidebar-toggle{
+  background:none;border:none;color:var(--text-dim);cursor:pointer;
+  padding:10px;font-size:16px;text-align:center;flex-shrink:0;
+  border-bottom:1px solid var(--border);transition:color var(--trans);
+}
+#sidebar-toggle:hover{color:var(--accent)}
+#topic-list{list-style:none;overflow-y:auto;flex:1;padding:4px 0}
+#topic-list::-webkit-scrollbar{width:4px}
+#topic-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.topic-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  cursor:pointer;transition:background var(--trans);white-space:nowrap;overflow:hidden;
+}
+.topic-item:hover{background:var(--surface2)}
+.topic-item.active{background:var(--accent-dim);color:#fff}
+.topic-label{font-family:var(--mono);font-size:12px;font-weight:600}
+.status-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid var(--text-dim);background:transparent;transition:all var(--trans);
+  position:relative;overflow:hidden;
+}
+.status-dot.half::after{
+  content:'';position:absolute;left:0;top:0;width:50%;height:100%;background:var(--accent);
+}
+.status-dot.full{background:var(--accent);border-color:var(--accent)}
+#sidebar.collapsed .topic-label{display:none}
+#sidebar.collapsed .status-dot{margin:0 auto}
+#sidebar.collapsed .topic-item{justify-content:center;padding:8px 0}
+#sidebar.collapsed #sidebar-footer{display:none}
+#sidebar-footer{padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0}
+#sidebar-footer a{
+  color:var(--text-dim);text-decoration:none;font-size:11px;
+  transition:color var(--trans);display:block;margin-bottom:4px;
+}
+#sidebar-footer a:last-child{margin-bottom:0}
+#sidebar-footer a:hover{color:var(--accent)}
+
+/* MAIN */
+#main-panel{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* TABS */
+#tabs{
+  display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tab-btn{
+  background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:12px;
+  font-weight:600;padding:7px 16px;cursor:pointer;border-bottom:2px solid transparent;
+  transition:color var(--trans),border-color var(--trans);letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:-1px;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* TAB CONTENT */
+.tab-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* SLIDES TAB — iframe fills everything, no padding */
+#tab-slides{position:relative}
+#slide-iframe{flex:1;width:100%;border:none;display:block;background:#fff}
+#slide-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--text-dim);text-align:center;gap:10px;
+}
+#slide-empty .big{font-size:40px;opacity:.18}
+#slide-empty p{font-size:13px;max-width:300px;line-height:1.7}
+#slide-empty a{color:var(--accent);text-decoration:none}
+#slide-empty a:hover{text-decoration:underline}
+
+/* HANDOUT TAB */
+#tab-handout{padding:20px;overflow-y:auto}
+#tab-handout::-webkit-scrollbar{width:6px}
+#tab-handout::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#handout-card{
+  background:#fff;color:#1a1a1a;border-radius:var(--radius);
+  max-width:700px;margin:0 auto;padding:48px 56px;font-family:var(--serif);
+  font-size:16px;line-height:1.8;box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+#handout-card h1{font-size:26px;margin:0 0 18px;line-height:1.3;border-bottom:2px solid #333;padding-bottom:10px}
+#handout-card h2{font-size:21px;margin:28px 0 12px;line-height:1.3}
+#handout-card h3{font-size:17px;margin:22px 0 8px;line-height:1.3}
+#handout-card p{margin:0 0 14px}
+#handout-card ul{margin:0 0 14px 24px}
+#handout-card li{margin-bottom:6px}
+#handout-card blockquote{
+  border-left:4px solid #ccc;margin:14px 0;padding:8px 16px;
+  color:#555;font-style:italic;
+}
+#handout-card pre{background:#f4f4f4;border-radius:4px;padding:16px;overflow-x:auto;margin:14px 0}
+#handout-card code{font-family:var(--mono);font-size:13px}
+#handout-card pre code{font-size:13px}
+#handout-card :not(pre)>code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px}
+#handout-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:300px;color:var(--text-dim);text-align:center;gap:10px;
+}
+#handout-empty .big{font-size:40px;opacity:.18}
+#handout-empty p{font-size:13px;max-width:300px;line-height:1.7}
+#handout-empty a{color:var(--accent);text-decoration:none}
+#handout-empty a:hover{text-decoration:underline}
+
+/* PRINT */
+@media print{
+  #nav,#sidebar,#tabs,#loading-bar,#sidebar-toggle{display:none!important}
+  #layout,#main-panel,#tab-handout{all:unset;display:block!important}
+  #handout-card{box-shadow:none;max-width:100%;margin:0;padding:0}
+  body{background:#fff}
+}
+
+/* MOBILE */
+@media(max-width:600px){
+  #sidebar{position:fixed;top:var(--nav-h);left:0;bottom:0;z-index:50;transition:transform var(--trans)}
+  #sidebar.collapsed{transform:translateX(-100%);width:var(--sidebar-w);min-width:var(--sidebar-w)}
+  #handout-card{padding:24px 20px}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="nav-title">Sprint Viewer</span>
+  <span class="nav-badge">Preview</span>
+  <div id="nav-right">
+    <select id="topic-jump" aria-label="Jump to topic"></select>
+    <a class="nav-edit-link" href="ai-agent-course.html" id="nav-edit-link">← Edit</a>
+  </div>
+</nav>
+
+<div id="loading-bar"></div>
+
+<div id="layout">
+  <aside id="sidebar">
+    <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+    <ul id="topic-list" role="listbox"></ul>
+    <div id="sidebar-footer">
+      <a href="ai-agent-course.html" id="sb-edit-link">← Edit</a>
+      <a href="ai-blog-preview.html">Blog Preview →</a>
+    </div>
+  </aside>
+
+  <main id="main-panel">
+    <div id="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="slides" role="tab">Slides</button>
+      <button class="tab-btn" data-tab="handout" role="tab">Handout</button>
+    </div>
+
+    <!-- Slides Tab -->
+    <div id="tab-slides" class="tab-content" role="tabpanel">
+      <iframe id="slide-iframe" src="" allowfullscreen style="display:none"></iframe>
+      <div id="slide-empty">
+        <div class="big">▣</div>
+        <p>No slides linked for this topic.<br>
+           <a href="ai-agent-course.html" id="slide-edit-link">← Go to editor</a> to add a slides path.</p>
+      </div>
+    </div>
+
+    <!-- Handout Tab -->
+    <div id="tab-handout" class="tab-content" role="tabpanel" style="display:none">
+      <div id="handout-card" style="display:none"></div>
+      <div id="handout-empty">
+        <div class="big">☰</div>
+        <p>No handout saved for this topic.<br>
+           <a href="ai-agent-course.html" id="handout-edit-link">← Go to editor</a> to write one.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+const key = (n, type) => `sprint_t${n}_${type}`;
+
+function topicStatus(n) {
+  const raw = FS.get('sprint_status');
+  if (!raw) return 'empty';
+  let obj; try { obj = JSON.parse(raw); } catch { return 'empty'; }
+  const t = obj[`t${n}`] || {};
+  const s = !!t.slides, h = !!t.handout;
+  if (s && h) return 'full';
+  if (s || h) return 'half';
+  return 'empty';
+}
+
+let currentTopic = 1;
+let currentTab   = 'slides';
+
+// ── Loading bar ───────────────────────────────────────────────────────────────
+function showLoading() {
+  const b = document.getElementById('loading-bar');
+  b.classList.remove('done'); b.classList.add('active');
+}
+function hideLoading() {
+  const b = document.getElementById('loading-bar');
+  b.classList.remove('active'); b.classList.add('done');
+  setTimeout(() => b.classList.remove('done'), 400);
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const list = document.getElementById('topic-list');
+  const jump = document.getElementById('topic-jump');
+  list.innerHTML = ''; jump.innerHTML = '';
+  for (let n = 1; n <= 30; n++) {
+    const st = topicStatus(n);
+    const li = document.createElement('li');
+    li.className = 'topic-item' + (n === currentTopic ? ' active' : '');
+    li.dataset.n = n;
+    li.innerHTML = `<span class="status-dot ${st}"></span><span class="topic-label">T${n}</span>`;
+    li.addEventListener('click', () => loadTopic(n));
+    list.appendChild(li);
+    const opt = Object.assign(document.createElement('option'), {value:n, textContent:`T${n}`});
+    if (n === currentTopic) opt.selected = true;
+    jump.appendChild(opt);
+  }
+}
+
+function refreshSidebarStatus() {
+  document.querySelectorAll('.topic-item').forEach(li => {
+    li.querySelector('.status-dot').className = `status-dot ${topicStatus(parseInt(li.dataset.n))}`;
+  });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, force) {
+  if (tab === currentTab && !force) return;
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-slides').style.display  = tab === 'slides'  ? 'flex' : 'none';
+  document.getElementById('tab-handout').style.display = tab === 'handout' ? 'flex' : 'none';
+  if (tab === 'slides') renderSlidesTab();
+  else renderHandoutTab();
+}
+
+// ── Slides ────────────────────────────────────────────────────────────────────
+function renderSlidesTab() {
+  const path = (FS.get(key(currentTopic, 'slides')) || '').trim();
+  const iframe = document.getElementById('slide-iframe');
+  const empty  = document.getElementById('slide-empty');
+  if (path) {
+    iframe.src = path;
+    iframe.style.display = 'block';
+    empty.style.display  = 'none';
+  } else {
+    iframe.style.display = 'none';
+    iframe.src = '';
+    empty.style.display  = 'flex';
+  }
+  document.getElementById('slide-edit-link').href = `ai-agent-course.html#t${currentTopic}`;
+}
+
+// ── Handout ───────────────────────────────────────────────────────────────────
+function parseMarkdown(text) {
+  const lines = text.split('\n');
+  let html = '', inCode = false, codeLines = [], inList = false, paraLines = [];
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function inline(s) {
+    s = esc(s);
+    s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    s = s.replace(/`([^`]+?)`/g,'<code>$1</code>');
+    return s;
+  }
+  function flushPara() { if (!paraLines.length) return; html += `<p>${paraLines.map(inline).join('<br>')}</p>\n`; paraLines = []; }
+  function flushList() { if (!inList) return; html += '</ul>\n'; inList = false; }
+  for (const l of lines) {
+    if (/^```/.test(l)) {
+      if (inCode) { html += `<pre><code>${codeLines.map(esc).join('\n')}</code></pre>\n`; codeLines = []; inCode = false; }
+      else { flushPara(); flushList(); inCode = true; codeLines = []; }
+      continue;
+    }
+    if (inCode) { codeLines.push(l); continue; }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) { flushPara(); flushList(); html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>\n`; }
+    else if ((m = l.match(/^>\s?(.*)/)))    { flushPara(); flushList(); html += `<blockquote><p>${inline(m[1])}</p></blockquote>\n`; }
+    else if ((m = l.match(/^[-*]\s+(.*)/))) { flushPara(); if (!inList) { html += '<ul>\n'; inList = true; } html += `<li>${inline(m[1])}</li>\n`; }
+    else if (!l.trim()) { flushPara(); flushList(); }
+    else { flushList(); paraLines.push(l); }
+  }
+  flushPara(); flushList();
+  if (inCode) html += `<pre><code>${codeLines.map(esc).join('\n')}</code></pre>\n`;
+  return html;
+}
+
+function renderHandoutTab() {
+  const text = (FS.get(key(currentTopic, 'handout')) || '').trim();
+  const card  = document.getElementById('handout-card');
+  const empty = document.getElementById('handout-empty');
+  if (text) {
+    card.innerHTML    = parseMarkdown(text);
+    card.style.display  = 'block';
+    empty.style.display = 'none';
+  } else {
+    card.style.display  = 'none';
+    empty.style.display = 'flex';
+  }
+  document.getElementById('handout-edit-link').href = `ai-agent-course.html#t${currentTopic}`;
+}
+
+// ── Topic loading ─────────────────────────────────────────────────────────────
+async function loadTopic(n) {
+  currentTopic = n;
+  document.getElementById('topic-jump').value = n;
+  document.querySelectorAll('.topic-item').forEach(li =>
+    li.classList.toggle('active', parseInt(li.dataset.n) === n));
+  history.replaceState(null, '', `#t${n}`);
+  // Update edit links to carry the topic hash
+  const editUrl = `ai-agent-course.html#t${n}`;
+  document.getElementById('nav-edit-link').href = editUrl;
+  document.getElementById('sb-edit-link').href  = editUrl;
+  showLoading();
+  await FS.loadTopic(n);
+  hideLoading();
+  switchTab(currentTab, true);
+  refreshSidebarStatus();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  const hash = location.hash.match(/^#t(\d+)$/);
+  const startTopic = hash ? Math.min(30, Math.max(1, parseInt(hash[1]))) : 1;
+
+  document.getElementById('topic-jump').addEventListener('change', function () {
+    loadTopic(parseInt(this.value));
+  });
+  document.getElementById('sidebar-toggle').addEventListener('click', () =>
+    document.getElementById('sidebar').classList.toggle('collapsed'));
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  await FS.loadStatus();
+  currentTopic = startTopic;
+  buildSidebar();
+  await loadTopic(currentTopic);
+
+  // Refresh when tab regains focus (editor may have just saved)
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      await FS.loadStatus();
+      await FS.refresh(currentTopic);
+      refreshSidebarStatus();
+      switchTab(currentTab, true);
+    }
+  });
+})();
+</script>
+</body>
+</html>
