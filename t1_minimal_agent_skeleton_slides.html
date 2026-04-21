@@ -1,0 +1,317 @@
+
+<style>
+.deck{font-family:var(--font-sans);width:100%;max-width:800px;margin:0 auto;padding:1rem 0}
+.progress-bar{height:2px;background:var(--color-border-tertiary);border-radius:2px;margin-bottom:1rem}
+.progress-fill{height:100%;background:#EF9F27;border-radius:2px;transition:width 0.3s ease}
+.slide-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:2rem 2.5rem;min-height:380px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.slide-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#EF9F27}
+.slide-num{font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);margin-bottom:1.25rem;letter-spacing:0.08em}
+.slide-title{font-size:22px;font-weight:500;color:var(--color-text-primary);margin:0 0 0.25rem}
+.slide-subtitle{font-family:var(--font-mono);font-size:12px;color:#EF9F27;margin:0 0 1.5rem;letter-spacing:0.04em}
+.slide-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+.nav-row{display:flex;align-items:center;justify-content:space-between;margin-top:1rem}
+.nav-btn{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 20px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);cursor:pointer}
+.nav-btn:hover{background:var(--color-background-secondary)}
+.nav-btn:disabled{opacity:0.3;cursor:default}
+.nav-counter{font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary)}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+.pill{font-family:var(--font-mono);font-size:11px;padding:4px 10px;border-radius:20px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+.pill.amber{background:#FAEEDA;border-color:#FAC775;color:#633806}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card-sm{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px 14px}
+.card-sm .label{font-family:var(--font-mono);font-size:11px;color:#EF9F27;margin:0 0 4px;font-weight:500}
+.card-sm p{font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.5}
+.card-sm .title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin:0 0 4px}
+.loop-row{display:flex;align-items:center;gap:0;margin:1rem 0}
+.loop-node{flex:1;text-align:center;padding:10px 6px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);position:relative}
+.loop-node.engine{border-color:#EF9F27;background:#FAEEDA}
+.loop-node .n-label{font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--color-text-primary)}
+.loop-node.engine .n-label{color:#633806}
+.loop-node .n-sub{font-family:var(--font-mono);font-size:9px;color:var(--color-text-tertiary);margin-top:2px}
+.loop-node.engine .n-sub{color:#854F0B}
+.arrow{font-size:14px;color:var(--color-text-tertiary);padding:0 2px;flex-shrink:0}
+.react-table{width:100%;border-collapse:collapse;font-size:13px}
+.react-table th{font-family:var(--font-mono);font-size:11px;color:var(--color-text-secondary);text-align:left;padding:6px 10px;border-bottom:0.5px solid var(--color-border-tertiary);font-weight:500}
+.react-table td{padding:8px 10px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:top;color:var(--color-text-primary)}
+.react-table td:first-child{font-family:var(--font-mono);font-size:11px;color:#EF9F27;font-weight:500;white-space:nowrap;width:110px}
+.react-table tr:last-child td{border-bottom:none;background:var(--color-background-secondary)}
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1rem}
+.compare-col{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px 14px}
+.compare-col .c-head{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:0.06em}
+.compare-col li{font-size:12px;color:var(--color-text-secondary);margin-bottom:5px;line-height:1.4;padding-left:4px}
+.code-block{background:#0d1117;border-radius:var(--border-radius-md);padding:14px 16px;font-family:var(--font-mono);font-size:11px;line-height:1.8;overflow-x:auto;position:relative;border:0.5px solid var(--color-border-tertiary)}
+.code-block .kw{color:#ff7b72}
+.code-block .cm{color:#8b949e;font-style:italic}
+.code-block .st{color:#a5d6ff}
+.code-block .ca{color:#EF9F27;font-weight:500}
+.code-block .def{color:#e6edf3}
+.callout-row{display:flex;gap:8px;margin-top:8px;align-items:flex-start}
+.callout{font-family:var(--font-mono);font-size:10px;background:var(--color-background-secondary);border:0.5px solid #EF9F27;border-radius:var(--border-radius-md);padding:5px 8px;color:var(--color-text-secondary);line-height:1.5;flex:1}
+.fail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0.5rem}
+.fail-card{border-radius:var(--border-radius-md);padding:14px;border:0.5px solid #F09595;background:#FCEBEB}
+.fail-card .fc-head{font-family:var(--font-mono);font-size:11px;font-weight:500;color:#A32D2D;margin:0 0 6px}
+.fail-card .fc-setup{font-size:12px;color:#791F1F;margin:0 0 6px;font-style:italic}
+.fail-card .fc-body{font-size:12px;color:#501313;margin:0 0 6px;line-height:1.4}
+.fail-card .fc-fix{font-family:var(--font-mono);font-size:10px;background:#F7C1C1;padding:4px 8px;border-radius:4px;color:#501313;display:block;margin-top:6px}
+.rule-box{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;margin-top:12px;font-family:var(--font-mono);font-size:11px;color:var(--color-text-secondary);text-align:center}
+.decision-card{background:var(--color-background-secondary);border:0.5px solid #EF9F27;border-radius:var(--border-radius-md);padding:16px;margin:0.75rem 0}
+.decision-card p{font-size:13px;color:var(--color-text-primary);margin:0 0 6px;line-height:1.6}
+.decision-card .dc-reject{font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);text-decoration:line-through;margin:0}
+.reading-list{list-style:none;padding:0;margin:0.75rem 0}
+.reading-list li{font-size:12px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;gap:8px;align-items:baseline}
+.reading-list li:last-child{border-bottom:none}
+.reading-list .rl-num{font-family:var(--font-mono);font-size:10px;color:#EF9F27;flex-shrink:0}
+.reading-list a{color:var(--color-text-info);font-size:12px;text-decoration:none}
+.reading-list .rl-desc{color:var(--color-text-secondary);font-size:11px;margin-left:4px}
+.exercise-box{background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:10px 14px;margin-top:8px;font-size:12px;color:var(--color-text-info);line-height:1.5}
+.split-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:0.5rem}
+.split-col{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:14px;background:var(--color-background-secondary)}
+.split-col.engine-col{border-color:#EF9F27}
+.split-col .sc-head{font-family:var(--font-mono);font-size:11px;font-weight:500;margin:0 0 8px;color:var(--color-text-secondary)}
+.split-col.engine-col .sc-head{color:#854F0B}
+.split-col p{font-size:13px;color:var(--color-text-primary);margin:0;line-height:1.5}
+.tag-line{font-size:15px;color:var(--color-text-secondary);margin:0.5rem 0 0;line-height:1.5}
+@media(max-width:600px){.grid2,.fail-grid,.compare-row,.split-row{grid-template-columns:1fr}.loop-row{flex-wrap:wrap}}
+</style>
+
+<h2 class="sr-only">T1: Minimal Agent Skeleton — 8-slide interactive deck. Use arrow keys or buttons to navigate.</h2>
+
+<div class="deck" id="deck">
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:12.5%"></div></div>
+
+  <div id="slide-container"></div>
+
+  <div class="nav-row">
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">← prev</button>
+    <span class="nav-counter" id="counter">1 / 8</span>
+    <button class="nav-btn" id="btn-next" onclick="navigate(1)">next →</button>
+  </div>
+</div>
+
+<script>
+const slides = [
+{
+  num:'01 / 08',
+  title:'The Engine Isn\'t the Car',
+  subtitle:'发动机不是车',
+  render:()=>`
+    <div class="split-row">
+      <div class="split-col">
+        <p class="sc-head">bare engine</p>
+        <p style="font-size:32px;margin:8px 0;text-align:center">⚙️</p>
+        <p style="font-size:12px;color:var(--color-text-tertiary);text-align:center;font-family:var(--font-mono)">powerful. inert. going nowhere.</p>
+      </div>
+      <div class="split-col engine-col">
+        <p class="sc-head" style="color:#854F0B">engine + chassis</p>
+        <p style="font-size:32px;margin:8px 0;text-align:center">🚗</p>
+        <p style="font-family:var(--font-mono);font-size:12px;color:#854F0B;text-align:center">same engine. different system.</p>
+      </div>
+    </div>
+    <p class="tag-line">An LLM is a powerful engine. An agent is the full vehicle: engine + chassis + steering + brakes. The chassis is the harness — the part you build.</p>
+    <div class="pill-row" style="margin-top:1rem">
+      <span class="pill amber">LLM = engine</span>
+      <span class="pill amber">harness = chassis</span>
+      <span class="pill">agent = full system</span>
+    </div>
+  `
+},
+{
+  num:'02 / 08',
+  title:'What Breaks Without a Chassis',
+  subtitle:'four failure modes',
+  render:()=>`
+    <div class="grid2">
+      <div class="card-sm">
+        <p class="label">no loop</p>
+        <p class="title">Single-shot, not an agent</p>
+        <p>The car moves one inch and stops. No observation means no second turn.</p>
+      </div>
+      <div class="card-sm">
+        <p class="label">no observation step</p>
+        <p class="title">Actions without consequences</p>
+        <p>Steering with no road feedback. The model acts but never learns what happened.</p>
+      </div>
+      <div class="card-sm">
+        <p class="label">no stopping condition</p>
+        <p class="title">Runaway tool calls</p>
+        <p>Throttle stuck open. Token budget burns to zero. Loop never exits.</p>
+      </div>
+      <div class="card-sm">
+        <p class="label">no state</p>
+        <p class="title">Amnesiac across turns</p>
+        <p>Driver forgets the road they just drove. Multi-step tasks are impossible.</p>
+      </div>
+    </div>
+  `
+},
+{
+  num:'03 / 08',
+  title:'The Minimal Agent Loop',
+  subtitle:'ReAct pattern — Yao et al. 2022',
+  render:()=>`
+    <div class="loop-row">
+      <div class="loop-node"><p class="n-label">PERCEIVE</p><p class="n-sub">messages list</p></div>
+      <span class="arrow">→</span>
+      <div class="loop-node engine"><p class="n-label">REASON</p><p class="n-sub">LLM fires here only</p></div>
+      <span class="arrow">→</span>
+      <div class="loop-node"><p class="n-label">ACT</p><p class="n-sub">execute_tool()</p></div>
+      <span class="arrow">→</span>
+      <div class="loop-node"><p class="n-label">OBSERVE</p><p class="n-sub">result → context</p></div>
+      <span class="arrow">→</span>
+      <div class="loop-node" style="border-style:dashed"><p class="n-label">STOP?</p><p class="n-sub">loop guard</p></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card-sm" style="border-color:#EF9F27">
+        <p class="label">harness owns (4 of 5)</p>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0">perceive · build_context · execute · stop guard</p>
+      </div>
+      <div class="card-sm">
+        <p class="label">model owns (1 of 5)</p>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0">reason — and only reason</p>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-tertiary);margin:10px 0 0;font-family:var(--font-mono)">if your agent breaks → look at the 4, not the 1</p>
+  `
+},
+{
+  num:'04 / 08',
+  title:'ReAct: The Foundational Pattern',
+  subtitle:'this is a pattern, not a framework — implementable in ~50 lines',
+  render:()=>`
+    <table class="react-table">
+      <thead><tr><th>step</th><th>who</th><th>example</th></tr></thead>
+      <tbody>
+        <tr><td>Thought:</td><td style="color:var(--color-text-secondary)">model reasons</td><td style="font-style:italic;color:var(--color-text-secondary)">"I need to find the capital of France."</td></tr>
+        <tr><td>Action:</td><td style="color:var(--color-text-secondary)">model calls tool</td><td style="font-family:var(--font-mono);font-size:11px">search(query="capital France")</td></tr>
+        <tr><td>Observation:</td><td style="color:var(--color-text-secondary)">harness executes</td><td style="color:var(--color-text-secondary)">"Paris is the capital of France."</td></tr>
+        <tr><td>Final Answer:</td><td style="color:var(--color-text-secondary)">model signals done</td><td style="color:var(--color-text-secondary)">loop guard sees no tool_calls → exit</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--color-text-tertiary);margin:10px 0 0;line-height:1.5">Every major framework (LangGraph, OpenAI Agents SDK) implements a variant of this loop. If you understand ReAct, you understand what all of them are doing underneath.</p>
+  `
+},
+{
+  num:'05 / 08',
+  title:'2025: Structured Schemas + Harness-Enforced Safety',
+  subtitle:'frontier design — same loop, stronger contracts',
+  render:()=>`
+    <div class="compare-row">
+      <div class="compare-col">
+        <p class="c-head">classic ReAct</p>
+        <ul>
+          <li>Freeform text parsing for actions</li>
+          <li>Pattern-match on "Action:" prefix</li>
+          <li>Stop on "Final Answer:" string</li>
+          <li>Loop guard: trust the model</li>
+        </ul>
+      </div>
+      <div class="compare-col" style="border-color:#EF9F27">
+        <p class="c-head" style="color:#854F0B">2025 standard</p>
+        <ul>
+          <li>JSON Schema tool definitions</li>
+          <li><code style="font-size:10px">msg.tool_calls</code> present/absent = action signal</li>
+          <li>No string parsing — schema is the contract</li>
+          <li>Loop guard: harness code, not prompt text</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sm" style="margin-top:12px;border-color:var(--color-border-secondary)">
+      <p class="label">anthropic model spec</p>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin:0">"minimal footprint · corrigibility · supporting human oversight" — harness is where these principles live, not the model</p>
+    </div>
+  `
+},
+{
+  num:'06 / 08',
+  title:'The Chassis in ~60 Lines',
+  subtitle:'MVS — every non-obvious line explained',
+  render:()=>`
+    <div class="code-block">
+<span class="kw">for</span> <span class="def">iteration</span> <span class="kw">in</span> <span class="def">range</span>(<span class="def">1</span>, <span class="def">max_iterations</span> + <span class="def">1</span>):  <span class="cm">← brakes</span>
+    <span class="def">response</span> = <span class="def">ollama</span>.<span class="def">chat</span>(<span class="def">model</span>=<span class="def">MODEL</span>, <span class="def">messages</span>=<span class="def">messages</span>, <span class="def">tools</span>=<span class="def">TOOLS</span>)
+    <span class="cm">                                           ← engine fires. only here.</span>
+    <span class="kw">if not</span> <span class="def">msg</span>.<span class="ca">tool_calls</span>:           <span class="cm">← parse: no call = done</span>
+        <span class="kw">return</span> <span class="def">msg</span>.<span class="def">content</span>
+    <span class="def">messages</span>.<span class="def">append</span>({<span class="st">"role"</span>: <span class="st">"assistant"</span>, ...})
+    <span class="kw">for</span> <span class="def">tool_call</span> <span class="kw">in</span> <span class="def">msg</span>.<span class="def">tool_calls</span>:
+        <span class="def">result</span> = <span class="ca">execute_tool</span>(<span class="def">name</span>, <span class="def">inputs</span>)  <span class="cm">← always returns str</span>
+        <span class="def">messages</span>.<span class="def">append</span>({<span class="st">"role"</span>: <span class="st">"tool"</span>, <span class="st">"content"</span>: <span class="def">result</span>})  <span class="cm">← observe</span>
+<span class="kw">return</span> <span class="st">"(loop guard fired)"</span>              <span class="cm">← always reachable</span>
+    </div>
+    <div class="callout-row">
+      <div class="callout">engine fires inside <code>ollama.chat()</code> only — nowhere else</div>
+      <div class="callout"><code>tool_calls</code> present/absent is the parse signal — not string matching</div>
+      <div class="callout"><code>max_iterations</code> is a law, not a prompt suggestion</div>
+    </div>
+  `
+},
+{
+  num:'07 / 08',
+  title:'Two Ways the Chassis Fails',
+  subtitle:'both induced deliberately on day 2',
+  render:()=>`
+    <div class="fail-grid">
+      <div class="fail-card">
+        <p class="fc-head">missing loop guard</p>
+        <p class="fc-setup">setup: remove max_iterations</p>
+        <p class="fc-body">Model called search_documents on every iteration — no answer, no stop signal. Loop ran until process killed. In production: cost incident + hung request.</p>
+        <span class="fc-fix">fix: for loop in harness code, not "stop after 5" in prompt</span>
+      </div>
+      <div class="fail-card">
+        <p class="fc-head">exception in execute_tool()</p>
+        <p class="fc-setup">setup: raise KeyError instead of return string</p>
+        <p class="fc-body">Entire loop crashed on first missing doc ID. No recovery. No final answer. Model never saw the error — the harness absorbed it and died.</p>
+        <span class="fc-fix">fix: all tool functions return str in every case</span>
+      </div>
+    </div>
+    <div class="rule-box">errors are observations · exceptions are infrastructure failures · never confuse the two</div>
+  `
+},
+{
+  num:'08 / 08',
+  title:'OpenAcorn Design Decision #1',
+  subtitle:'further reading + exercise',
+  render:()=>`
+    <div class="decision-card">
+      <p>"For OpenAcorn, I will implement <code>execute_tool()</code> as a pure string-returning function with a top-level <code>try/except</code>, and enforce <code>max_iterations=10</code> as a harness constant — not a prompt instruction."</p>
+      <p class="dc-reject">considered: delegate stop logic to the model — rejected</p>
+    </div>
+    <ul class="reading-list">
+      <li><span class="rl-num">01</span><a href="https://anthropic.com/model-spec">Anthropic model spec</a><span class="rl-desc">— harness safety principles</span></li>
+      <li><span class="rl-num">02</span><a href="https://arxiv.org/abs/2210.03629">ReAct paper — Yao et al. 2022</a><span class="rl-desc">— the foundational loop pattern</span></li>
+      <li><span class="rl-num">03</span><a href="https://anthropic.com/research/building-effective-agents">Building effective agents — Anthropic</a><span class="rl-desc">— official harness guide</span></li>
+    </ul>
+    <div class="exercise-box">exercise: implement the MVS loop from scratch without looking at the code. then remove the loop guard and ask: what is the worst-case outcome in production?</div>
+  `
+}
+];
+
+let current = 0;
+
+function render(){
+  const s = slides[current];
+  document.getElementById('slide-container').innerHTML = `
+    <div class="slide-card">
+      <div class="slide-num">${s.num}</div>
+      <h2 class="slide-title">${s.title}</h2>
+      <p class="slide-subtitle">${s.subtitle}</p>
+      <div class="slide-body">${s.render()}</div>
+    </div>`;
+  document.getElementById('prog').style.width = ((current+1)/slides.length*100)+'%';
+  document.getElementById('counter').textContent = (current+1)+' / '+slides.length;
+  document.getElementById('btn-prev').disabled = current===0;
+  document.getElementById('btn-next').disabled = current===slides.length-1;
+}
+
+function navigate(dir){
+  const next = current + dir;
+  if(next>=0 && next<slides.length){ current=next; render(); }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft') navigate(-1);
+  if(e.key==='ArrowRight') navigate(1);
+});
+
+render();
+</script>

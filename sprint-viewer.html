@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Viewer — Slides &amp; Handout</title>
+<script src="sprint-storage.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;
+  --surface:#1a1d27;
+  --surface2:#22263a;
+  --accent:#7c6af7;
+  --accent-dim:#4e45a0;
+  --text:#e2e4ef;
+  --text-dim:#7a7f9a;
+  --border:#2a2e42;
+  --mono:'Courier New',Courier,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --serif:Georgia,'Times New Roman',serif;
+  --sidebar-w:220px;
+  --nav-h:48px;
+  --radius:6px;
+  --trans:100ms ease;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px}
+
+/* NAV */
+#nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;z-index:100;gap:12px;
+}
+.nav-title{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;letter-spacing:.03em}
+#topic-jump{
+  background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--radius);padding:4px 8px;font-family:var(--mono);font-size:12px;cursor:pointer;
+}
+#topic-jump:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+/* LAYOUT */
+#layout{
+  display:flex;height:calc(100vh - var(--nav-h));margin-top:var(--nav-h);overflow:hidden;
+}
+
+/* SIDEBAR */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--surface);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  overflow:hidden;transition:width var(--trans),min-width var(--trans);
+}
+#sidebar.collapsed{width:40px;min-width:40px}
+#sidebar-toggle{
+  background:none;border:none;color:var(--text-dim);cursor:pointer;
+  padding:10px;font-size:16px;text-align:center;flex-shrink:0;
+  border-bottom:1px solid var(--border);transition:color var(--trans);
+}
+#sidebar-toggle:hover{color:var(--accent)}
+#topic-list{
+  list-style:none;overflow-y:auto;flex:1;padding:4px 0;
+}
+#topic-list::-webkit-scrollbar{width:4px}
+#topic-list::-webkit-scrollbar-track{background:transparent}
+#topic-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.topic-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  cursor:pointer;transition:background var(--trans);white-space:nowrap;overflow:hidden;
+}
+.topic-item:hover{background:var(--surface2)}
+.topic-item.active{background:var(--accent-dim);color:#fff}
+.topic-label{font-family:var(--mono);font-size:12px;font-weight:600}
+.status-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid var(--text-dim);background:transparent;transition:all var(--trans);
+  position:relative;overflow:hidden;
+}
+.status-dot.half::after{
+  content:'';position:absolute;left:0;top:0;width:50%;height:100%;background:var(--accent);
+}
+.status-dot.full{background:var(--accent);border-color:var(--accent)}
+#sidebar.collapsed .topic-label{display:none}
+#sidebar.collapsed .status-dot{margin:0 auto}
+#sidebar.collapsed .topic-item{justify-content:center;padding:8px 0}
+#sidebar.collapsed #sidebar-footer{display:none}
+#sidebar-footer{
+  padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;
+}
+#sidebar-footer a{
+  color:var(--text-dim);text-decoration:none;font-size:11px;
+  transition:color var(--trans);display:block;
+}
+#sidebar-footer a:hover{color:var(--accent)}
+
+/* MAIN PANEL */
+#main-panel{
+  flex:1;overflow:hidden;display:flex;flex-direction:column;
+}
+#topic-header{
+  padding:12px 20px 0;display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+#topic-title{font-size:18px;font-family:var(--mono);color:var(--accent);font-weight:700}
+
+/* TABS */
+#tabs{
+  display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tab-btn{
+  background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:12px;
+  font-weight:600;padding:7px 16px;cursor:pointer;border-bottom:2px solid transparent;
+  transition:color var(--trans),border-color var(--trans);letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:-1px;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* TAB CONTENT */
+.tab-content{
+  flex:1;overflow:hidden;display:flex;flex-direction:column;padding:20px;
+  animation:fadeIn var(--trans);
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.btn{
+  background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+  padding:8px 18px;font-family:var(--mono);font-size:12px;font-weight:600;
+  cursor:pointer;transition:background var(--trans);letter-spacing:.04em;
+  text-decoration:none;display:inline-flex;align-items:center;
+}
+.btn:hover{background:var(--accent-dim)}
+.btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn.secondary:hover{background:var(--border)}
+.btn.danger{background:#6b2020;color:#ffc0c0;border:1px solid #8b3030}
+.btn.danger:hover{background:#8b3030}
+
+/* SLIDES LINK WIDGET */
+#slide-link-widget{display:flex;flex-direction:column;height:100%;gap:0}
+#slide-url-bar{flex-shrink:0;margin-bottom:16px}
+#slide-url-label{font-size:11px;color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+#slide-url-row{display:flex;gap:8px;align-items:center}
+#slide-url-input{
+  flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px 12px;font-family:var(--mono);font-size:13px;
+  transition:border-color var(--trans);
+}
+#slide-url-input:focus{outline:none;border-color:var(--accent)}
+#slide-embed-area{flex:1;min-height:0}
+#slide-iframe{width:100%;height:100%;border:1px solid var(--border);border-radius:var(--radius);background:#ffffff;display:block}
+#slide-empty-state{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--text-dim);text-align:center;gap:10px;
+}
+#slide-empty-state .big{font-size:40px;opacity:.18}
+#slide-empty-state p{font-size:13px;max-width:300px;line-height:1.7;color:var(--text-dim)}
+
+/* HANDOUT */
+#handout-controls{
+  display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;flex-shrink:0;
+}
+.mode-btn{
+  background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);
+  border-radius:var(--radius);padding:6px 14px;font-family:var(--mono);font-size:12px;
+  font-weight:600;cursor:pointer;transition:all var(--trans);
+}
+.mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mode-btn:hover:not(.active){color:var(--text)}
+#edit-mode{display:flex;flex-direction:column;flex:1;min-height:0;position:relative}
+#handout-textarea{
+  flex:1;min-height:0;resize:none;background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+  font-family:var(--mono);font-size:13px;line-height:1.7;
+  transition:border-color var(--trans);
+}
+#handout-textarea:focus{outline:none;border-color:var(--accent)}
+#handout-meta{
+  display:flex;justify-content:flex-end;align-items:center;gap:16px;
+  padding-top:6px;font-size:11px;flex-shrink:0;
+}
+#char-count{color:var(--text-dim)}
+#save-indicator{color:var(--accent);opacity:0;transition:opacity .3s}
+#save-indicator.visible{opacity:1}
+#preview-mode{flex:1;overflow-y:auto;display:none}
+#preview-mode::-webkit-scrollbar{width:6px}
+#preview-mode::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#handout-preview{
+  background:#fff;color:#1a1a1a;border-radius:var(--radius);
+  max-width:700px;margin:0 auto;padding:48px 56px;font-family:var(--serif);
+  font-size:16px;line-height:1.8;box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+#handout-preview h1{font-size:26px;margin:0 0 18px;line-height:1.3;border-bottom:2px solid #333;padding-bottom:10px}
+#handout-preview h2{font-size:21px;margin:28px 0 12px;line-height:1.3}
+#handout-preview h3{font-size:17px;margin:22px 0 8px;line-height:1.3}
+#handout-preview p{margin:0 0 14px}
+#handout-preview ul{margin:0 0 14px 24px}
+#handout-preview li{margin-bottom:6px}
+#handout-preview blockquote{
+  border-left:4px solid #ccc;margin:14px 0;padding:8px 16px;
+  color:#555;font-style:italic;
+}
+#handout-preview pre{
+  background:#f4f4f4;border-radius:4px;padding:16px;
+  overflow-x:auto;margin:14px 0;
+}
+#handout-preview code{
+  font-family:var(--mono);font-size:13px;
+}
+#handout-preview pre code{font-size:13px}
+#handout-preview :not(pre)>code{
+  background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px;
+}
+
+/* PRINT */
+@media print{
+  #nav,#sidebar,#tabs,#handout-controls,#edit-mode,#slide-link-widget,
+  #topic-header,#sidebar-toggle{display:none!important}
+  #layout,#main-panel,.tab-content,#preview-mode,#tab-handout{
+    all:unset;display:block!important;
+  }
+  #handout-preview{box-shadow:none;max-width:100%;margin:0;padding:0}
+  body{background:#fff}
+}
+
+/* Toast notification */
+#view-toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:#1e2a1e;color:#7dde7d;border:1px solid #3a5c3a;
+  border-radius:24px;padding:10px 22px;font-family:var(--mono);font-size:13px;
+  font-weight:600;white-space:nowrap;pointer-events:none;z-index:999;
+  opacity:0;transition:opacity .2s ease,transform .2s ease;
+}
+#view-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MOBILE */
+@media(max-width:600px){
+  #sidebar{position:fixed;top:var(--nav-h);left:0;bottom:0;z-index:50;transition:transform var(--trans)}
+  #sidebar.collapsed{transform:translateX(-100%);width:var(--sidebar-w);min-width:var(--sidebar-w)}
+  #main-panel{margin-left:0!important}
+  #handout-preview{padding:24px 20px}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <span class="nav-title">Sprint Viewer — Slides &amp; Handout</span>
+  <select id="topic-jump" aria-label="Quick jump to topic"></select>
+</nav>
+
+<div id="view-toast"></div>
+
+<div id="layout">
+  <aside id="sidebar">
+    <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+    <ul id="topic-list" role="listbox" aria-label="Topic list"></ul>
+    <div id="sidebar-footer">
+      <a href="sprint-blog.html">Blog &amp; Code →</a>
+    </div>
+  </aside>
+
+  <main id="main-panel">
+    <div id="topic-header">
+      <h2 id="topic-title">T1</h2>
+    </div>
+
+    <div id="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="slides" role="tab" aria-selected="true">Slides</button>
+      <button class="tab-btn" data-tab="handout" role="tab" aria-selected="false">Handout</button>
+    </div>
+
+    <!-- Slides Tab -->
+    <div id="tab-slides" class="tab-content" role="tabpanel">
+      <div id="slide-link-widget">
+        <div id="slide-url-bar">
+          <div id="slide-url-label">HTML Slides URL</div>
+          <div id="slide-url-row">
+            <input type="url" id="slide-url-input" placeholder="https://…" spellcheck="false" autocorrect="off" autocapitalize="off">
+            <button class="btn" id="btn-save-link">Save</button>
+            <a class="btn secondary" id="btn-open-link" href="#" target="_blank" rel="noopener" style="display:none">Open ↗</a>
+            <button class="btn danger" id="btn-clear-link" style="display:none">Clear</button>
+          </div>
+        </div>
+        <div id="slide-embed-area" style="display:none">
+          <iframe id="slide-iframe" src="" allowfullscreen></iframe>
+        </div>
+        <div id="slide-empty-state">
+          <div class="big">▣</div>
+          <p>No slides linked for this topic.<br>Paste an HTML slides URL above and click Save.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Handout Tab -->
+    <div id="tab-handout" class="tab-content" role="tabpanel" style="display:none">
+      <div id="handout-controls">
+        <button class="mode-btn active" id="btn-edit" onclick="switchMode('edit')">Edit</button>
+        <button class="mode-btn" id="btn-preview" onclick="switchMode('preview')">Preview</button>
+        <button class="btn secondary" style="margin-left:auto" onclick="window.print()">Print / Save as PDF</button>
+      </div>
+
+      <div id="edit-mode">
+        <textarea id="handout-textarea" placeholder="Paste plain text or Markdown here…
+
+Supports: # headings, **bold**, `code`, ``` code blocks ```,
+- bullet lists, > blockquotes, blank lines for paragraphs."></textarea>
+        <div id="handout-meta">
+          <span id="char-count">0 chars</span>
+          <span id="save-indicator">✓ Saved</span>
+        </div>
+      </div>
+
+      <div id="preview-mode">
+        <div id="handout-preview"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentTopic = 1;
+let currentTab   = 'slides';
+let currentMode  = 'edit';   // edit | preview (handout)
+let saveTimer    = null;
+
+// ── Storage helpers (delegate to FS module from sprint-storage.js) ────────────
+const key = (n, type) => `sprint_t${n}_${type}`;
+
+const lsGet    = k       => FS.get(k);                    // sync (from cache)
+const lsSet    = (k, v)  => FS.set(k, v);                 // returns Promise
+const lsRemove = k       => FS.del(k);                    // returns Promise
+
+// ── Status (reads from status.json manifest in cache) ─────────────────────────
+function topicStatus(n) {
+  const raw = FS.get('sprint_status');
+  if (!raw) return 'empty';
+  let obj; try { obj = JSON.parse(raw); } catch { return 'empty'; }
+  const t = obj[`t${n}`] || {};
+  const s = !!t.slides, h = !!t.handout;
+  if (s && h) return 'full';
+  if (s || h) return 'half';
+  return 'empty';
+}
+
+// ── Sidebar + nav dropdown build ─────────────────────────────────────────────
+function buildSidebar() {
+  const list = document.getElementById('topic-list');
+  const jump = document.getElementById('topic-jump');
+  list.innerHTML = '';
+  jump.innerHTML = '';
+  for (let n = 1; n <= 30; n++) {
+    const st = topicStatus(n);
+    const li = document.createElement('li');
+    li.className = 'topic-item' + (n === currentTopic ? ' active' : '');
+    li.dataset.n = n;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', n === currentTopic);
+    li.innerHTML = `<span class="status-dot ${st}"></span><span class="topic-label">T${n}</span>`;
+    li.addEventListener('click', () => loadTopic(n));
+    list.appendChild(li);
+
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = `T${n}`;
+    if (n === currentTopic) opt.selected = true;
+    jump.appendChild(opt);
+  }
+}
+
+function refreshSidebarStatus() {
+  document.querySelectorAll('.topic-item').forEach(li => {
+    const n = parseInt(li.dataset.n);
+    const dot = li.querySelector('.status-dot');
+    dot.className = `status-dot ${topicStatus(n)}`;
+  });
+}
+
+document.getElementById('topic-jump').addEventListener('change', function () {
+  loadTopic(parseInt(this.value));
+});
+
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+});
+
+// ── Topic loading ─────────────────────────────────────────────────────────────
+async function loadTopic(n) {
+  currentTopic = n;
+  document.getElementById('topic-title').textContent = `T${n}`;
+
+  // Update active state in sidebar
+  document.querySelectorAll('.topic-item').forEach(li => {
+    li.classList.toggle('active', parseInt(li.dataset.n) === n);
+    li.setAttribute('aria-selected', parseInt(li.dataset.n) === n);
+  });
+  document.getElementById('topic-jump').value = n;
+
+  // Fetch topic files from GitHub (reads via raw URL — no token needed)
+  await FS.loadTopic(n);
+
+  switchTab(currentTab, true);
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab, force) {
+  if (tab === currentTab && !force) return;
+  currentTab = tab;
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === tab;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active);
+  });
+
+  document.getElementById('tab-slides').style.display  = tab === 'slides'  ? 'flex' : 'none';
+  document.getElementById('tab-handout').style.display = tab === 'handout' ? 'flex' : 'none';
+
+  if (tab === 'slides') {
+    renderSlidesTab();
+  } else {
+    renderHandoutTab();
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => switchTab(b.dataset.tab));
+});
+
+// ── Slides Tab ────────────────────────────────────────────────────────────────
+function renderSlidesTab() {
+  const url = (lsGet(key(currentTopic, 'slides')) || '').trim();
+  document.getElementById('slide-url-input').value = url;
+  document.getElementById('btn-open-link').style.display  = url ? '' : 'none';
+  document.getElementById('btn-clear-link').style.display = url ? '' : 'none';
+  document.getElementById('btn-open-link').href           = url || '#';
+  document.getElementById('slide-embed-area').style.display  = url ? '' : 'none';
+  document.getElementById('slide-empty-state').style.display = url ? 'none' : '';
+  if (url) document.getElementById('slide-iframe').src = url;
+}
+
+async function saveSlidesUrl() {
+  const url = document.getElementById('slide-url-input').value.trim();
+  if (!FS.canWrite) { showViewToast('⚠ Run server.js locally to save', true); return; }
+  if (!url) { await clearSlidesUrl(); return; }
+  try {
+    await lsSet(key(currentTopic, 'slides'), url);
+    refreshSidebarStatus();
+    renderSlidesTab();
+    showViewToast('✓ Link saved');
+  } catch(e) { showViewToast('✗ ' + e.message, true); }
+}
+
+async function clearSlidesUrl() {
+  if (!FS.canWrite) { showViewToast('⚠ Run server.js locally to edit', true); return; }
+  try {
+    await lsRemove(key(currentTopic, 'slides'));
+    refreshSidebarStatus();
+    renderSlidesTab();
+    showViewToast('✓ Link cleared');
+  } catch(e) { showViewToast('✗ ' + e.message, true); }
+}
+
+// ── Markdown parser (no external deps) ───────────────────────────────────────
+function parseMarkdown(text) {
+  const lines = text.split('\n');
+  let html          = '';
+  let inCode        = false;
+  let codeLang      = '';
+  let codeLines     = [];
+  let inList        = false;
+  let paraLines     = [];
+
+  function escMd(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inline(s) {
+    s = escMd(s);
+    // **bold**
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // `code`
+    s = s.replace(/`([^`]+?)`/g, '<code>$1</code>');
+    return s;
+  }
+  function flushPara() {
+    if (!paraLines.length) return;
+    html += `<p>${paraLines.map(inline).join('<br>')}</p>\n`;
+    paraLines = [];
+  }
+  function flushList() {
+    if (!inList) return;
+    html += '</ul>\n';
+    inList = false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+
+    // Code fence
+    if (/^```/.test(l)) {
+      if (inCode) {
+        html += `<pre><code>${codeLines.map(escMd).join('\n')}</code></pre>\n`;
+        codeLines = []; inCode = false;
+      } else {
+        flushPara(); flushList();
+        inCode = true; codeLines = [];
+      }
+      continue;
+    }
+    if (inCode) { codeLines.push(l); continue; }
+
+    // Headings
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) {
+      flushPara(); flushList();
+      const lvl = m[1].length;
+      html += `<h${lvl}>${inline(m[2])}</h${lvl}>\n`;
+      continue;
+    }
+    // Blockquote
+    if ((m = l.match(/^>\s?(.*)/))) {
+      flushPara(); flushList();
+      html += `<blockquote><p>${inline(m[1])}</p></blockquote>\n`;
+      continue;
+    }
+    // Bullet list
+    if ((m = l.match(/^[-*]\s+(.*)/))) {
+      flushPara();
+      if (!inList) { html += '<ul>\n'; inList = true; }
+      html += `<li>${inline(m[1])}</li>\n`;
+      continue;
+    }
+    // Blank line
+    if (!l.trim()) {
+      flushPara(); flushList();
+      continue;
+    }
+    // Regular text — close list first
+    flushList();
+    paraLines.push(l);
+  }
+  flushPara(); flushList();
+  if (inCode) html += `<pre><code>${codeLines.map(escMd).join('\n')}</code></pre>\n`;
+  return html;
+}
+
+// ── Handout Tab ───────────────────────────────────────────────────────────────
+function renderHandoutTab() {
+  const stored = lsGet(key(currentTopic, 'handout')) || '';
+  document.getElementById('handout-textarea').value = stored;
+  updateCharCount();
+  switchMode(currentMode, true);
+}
+
+function switchMode(mode, force) {
+  if (mode === currentMode && !force) return;
+  currentMode = mode;
+  document.getElementById('btn-edit').classList.toggle('active', mode === 'edit');
+  document.getElementById('btn-preview').classList.toggle('active', mode === 'preview');
+
+  if (mode === 'edit') {
+    document.getElementById('edit-mode').style.display    = 'flex';
+    document.getElementById('preview-mode').style.display = 'none';
+  } else {
+    document.getElementById('edit-mode').style.display    = 'none';
+    document.getElementById('preview-mode').style.display = 'block';
+    const raw = document.getElementById('handout-textarea').value;
+    document.getElementById('handout-preview').innerHTML =
+      raw.trim() ? parseMarkdown(raw) : '<p style="color:#999;font-style:italic">Nothing to preview.</p>';
+  }
+}
+
+function updateCharCount() {
+  const n = document.getElementById('handout-textarea').value.length;
+  document.getElementById('char-count').textContent = `${n.toLocaleString()} chars`;
+}
+
+function showSaved() {
+  const el = document.getElementById('save-indicator');
+  el.classList.add('visible');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('visible'), 2000);
+}
+
+document.getElementById('handout-textarea').addEventListener('input', function () {
+  updateCharCount();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!FS.canWrite) return; // silently skip — not local or no folder
+    try {
+      await lsSet(key(currentTopic, 'handout'), this.value);
+      refreshSidebarStatus();
+      showSaved();
+    } catch(e) { console.warn('Handout save failed:', e); }
+  }, 800);
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showViewToast(msg, err) {
+  const t = document.getElementById('view-toast');
+  t.textContent = msg;
+  t.style.background   = err ? '#2a1e1e' : '#1e2a1e';
+  t.style.color        = err ? '#ff8080' : '#7dde7d';
+  t.style.borderColor  = err ? '#5c3a3a' : '#3a5c3a';
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  document.getElementById('btn-save-link').addEventListener('click', saveSlidesUrl);
+  document.getElementById('btn-clear-link').addEventListener('click', clearSlidesUrl);
+  document.getElementById('slide-url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveSlidesUrl();
+  });
+
+  await FS.loadStatus();
+  buildSidebar();
+  await loadTopic(1);
+  switchTab('slides', true);
+})();
+</script>
+</body>
+</html>
