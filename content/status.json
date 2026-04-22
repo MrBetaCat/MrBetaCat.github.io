@@ -1,6 +1,7 @@
 {
   "t1": {
     "handout": true,
-    "slides": true
+    "slides": true,
+    "blog": true
   }
 }

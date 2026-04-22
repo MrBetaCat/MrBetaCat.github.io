@@ -108,6 +108,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
 /* MAIN */
 #main-panel{flex:1;overflow:hidden;display:flex;flex-direction:column}
 
+/* PREVIEW TABS */
+#preview-tabs{
+  display:flex;gap:4px;padding:10px 20px 0;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.preview-tab-btn{
+  background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:12px;
+  font-weight:600;padding:7px 16px;cursor:pointer;border-bottom:2px solid transparent;
+  transition:color var(--t),border-color var(--t);letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:-1px;
+}
+.preview-tab-btn:hover{color:var(--text)}
+.preview-tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
 /* POST SCROLL AREA */
 #post-scroll{
   flex:1;overflow-y:auto;padding:32px 24px;display:flex;flex-direction:column;
@@ -115,6 +129,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
 }
 #post-scroll::-webkit-scrollbar{width:6px}
 #post-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* CODE PREVIEW AREA */
+#code-scroll{
+  flex:1;overflow-y:auto;padding:20px 24px;display:none;flex-direction:column;gap:16px;
+}
+#code-scroll::-webkit-scrollbar{width:6px}
+#code-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.preview-snippet-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;flex-shrink:0;
+}
+.preview-snippet-header{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;
+  background:var(--surface2);border-bottom:1px solid var(--border);
+}
+.preview-snippet-name{font-size:13px;font-weight:700;color:var(--text)}
+.preview-snippet-lang{
+  font-size:11px;color:var(--text-dim);background:var(--code-bg);
+  border:1px solid var(--border);border-radius:4px;padding:2px 7px;
+}
+.preview-snippet-copy{
+  margin-left:auto;background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--r);padding:4px 10px;font-family:var(--mono);font-size:11px;font-weight:600;
+  cursor:pointer;transition:background var(--t);
+}
+.preview-snippet-copy:hover{background:var(--border)}
+.code-snippet-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 20px;gap:14px;text-align:center;color:var(--text-dim);
+}
+.code-snippet-empty .big{font-size:40px;opacity:.2}
+.code-snippet-empty p{font-size:13px;line-height:1.7}
+.code-snippet-empty a{color:var(--accent);text-decoration:none}
+.code-snippet-empty a:hover{text-decoration:underline}
 
 /* ── BLOG POST CARD ─────────────────────────────────────────────────────────── */
 #post-card{
@@ -196,6 +244,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
   margin-right:16px;user-select:none;-webkit-user-select:none;
 }
 
+/* Standalone code blocks (code tab) */
+.code-block{
+  background:var(--code-bg);padding:0;margin:0;overflow-x:auto;
+  font-family:var(--mono);font-size:13px;line-height:1.6;
+}
+.code-block code{display:block;padding:16px 20px;color:var(--tok-def);white-space:pre}
+.code-block[data-lang]::before{
+  content:attr(data-lang);display:block;padding:6px 20px 4px;
+  font-family:var(--mono);font-size:11px;color:#5a6380;
+  border-bottom:1px solid var(--border);letter-spacing:.06em;text-transform:uppercase;
+}
+
 /* Code block label */
 .post-body pre[data-lang]::before{
   content:attr(data-lang);display:block;padding:6px 20px 4px;
@@ -265,6 +325,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
   </aside>
 
   <main id="main-panel">
+    <div id="preview-tabs">
+      <button class="preview-tab-btn active" data-ptab="blog">Blog Post</button>
+      <button class="preview-tab-btn" data-ptab="code">Code Examples</button>
+    </div>
+
     <div id="post-scroll">
       <article id="post-card" style="display:none"></article>
       <div id="empty-state">
@@ -272,6 +337,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
         <p>No blog post saved for this topic yet.<br>
            <a href="ai-blog.html" id="empty-edit-link">Open the editor →</a> to write one.</p>
       </div>
+    </div>
+
+    <div id="code-scroll">
+      <div id="code-snippets-container"></div>
     </div>
   </main>
 </div>
@@ -425,15 +494,28 @@ function wordStats(text) {
 
 const lsGet   = k => FS.get(k);
 const blogKey = n => `sprint_t${n}_blog`;
+const codeKey = n => `sprint_t${n}_code`;
 
 function topicHasBlog(n) {
   const raw = FS.get('sprint_status');
   if (!raw) return false;
   try { const obj = JSON.parse(raw); return !!(obj[`t${n}`]?.blog); } catch { return false; }
 }
+function topicHasCode(n) {
+  const raw = FS.get('sprint_status');
+  if (!raw) return false;
+  try { const obj = JSON.parse(raw); return !!(obj[`t${n}`]?.code); } catch { return false; }
+}
+function topicStatus(n) {
+  const b = topicHasBlog(n), c = topicHasCode(n);
+  if (b && c) return 'full';
+  if (b || c) return 'half';
+  return '';
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let currentTopic = 1;
+let currentTopic   = 1;
+let currentPrevTab = 'blog';
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function buildSidebar() {
@@ -441,11 +523,11 @@ function buildSidebar() {
   const jump=document.getElementById('topic-jump');
   list.innerHTML=''; jump.innerHTML='';
   for (let n=1;n<=30;n++) {
-    const has=topicHasBlog(n);
+    const st=topicStatus(n);
     const li=document.createElement('li');
     li.className='topic-item'+(n===currentTopic?' active':'');
     li.dataset.n=n;
-    li.innerHTML=`<span class="status-dot ${has?'full':''}"></span><span class="topic-label">T${n}</span>`;
+    li.innerHTML=`<span class="status-dot ${st}"></span><span class="topic-label">T${n}</span>`;
     li.addEventListener('click',()=>loadTopic(n));
     list.appendChild(li);
     const opt=Object.assign(document.createElement('option'),{value:n,textContent:`T${n}`});
@@ -457,8 +539,56 @@ function buildSidebar() {
 function refreshSidebarStatus() {
   document.querySelectorAll('.topic-item').forEach(li=>{
     const n=parseInt(li.dataset.n);
-    li.querySelector('.status-dot').className=`status-dot ${topicHasBlog(n)?'full':''}`;
+    li.querySelector('.status-dot').className=`status-dot ${topicStatus(n)}`;
   });
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchPrevTab(tab) {
+  currentPrevTab = tab;
+  document.querySelectorAll('.preview-tab-btn').forEach(b=>
+    b.classList.toggle('active', b.dataset.ptab === tab));
+  document.getElementById('post-scroll').style.display  = tab==='blog' ? '' : 'none';
+  const cs = document.getElementById('code-scroll');
+  cs.style.display = tab==='code' ? 'flex' : 'none';
+  if (tab==='code') renderCodeSnippets(currentTopic);
+  else renderPost(currentTopic);
+}
+
+// ── Render code snippets ──────────────────────────────────────────────────────
+function renderCodeSnippets(n) {
+  const container = document.getElementById('code-snippets-container');
+  const raw = lsGet(codeKey(n));
+  let snippets = [];
+  if (raw) { try { const a=JSON.parse(raw); if(Array.isArray(a)) snippets=a; } catch {} }
+
+  if (!snippets.length) {
+    container.innerHTML=`<div class="code-snippet-empty">
+      <div class="big">{ }</div>
+      <p>No code snippets saved for this topic yet.<br>
+         <a href="ai-blog.html#t${n}">Open the editor →</a> to add some.</p>
+    </div>`; return;
+  }
+
+  container.innerHTML = snippets.map((s,i)=>`
+    <div class="preview-snippet-card">
+      <div class="preview-snippet-header">
+        <span class="preview-snippet-name">${esc(s.name||`Snippet ${i+1}`)}</span>
+        <span class="preview-snippet-lang">${esc(s.language||'text')}</span>
+        <button class="preview-snippet-copy" data-idx="${i}">Copy</button>
+      </div>
+      <pre class="code-block" data-lang="${esc(s.language)}"><code>${renderHighlighted(s.body,s.language)}</code></pre>
+    </div>`).join('');
+
+  container.querySelectorAll('.preview-snippet-copy').forEach(btn=>{
+    btn.addEventListener('click', async()=>{
+      const idx=parseInt(btn.dataset.idx);
+      const ok=await navigator.clipboard.writeText(snippets[idx].body).then(()=>true).catch(()=>false);
+      if (ok){const orig=btn.textContent;btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent=orig,1600);}
+    });
+  });
+
+  document.getElementById('code-scroll').scrollTop=0;
 }
 
 // ── Render post ───────────────────────────────────────────────────────────────
@@ -487,7 +617,8 @@ async function loadTopic(n) {
   _showLoading();
   await FS.loadTopic(n);
   _hideLoading();
-  renderPost(n);
+  if (currentPrevTab==='blog') renderPost(n);
+  else renderCodeSnippets(n);
   refreshSidebarStatus();
 }
 
@@ -540,11 +671,16 @@ function renderPost(n) {
   document.getElementById('sidebar-toggle').addEventListener('click', () =>
     document.getElementById('sidebar').classList.toggle('collapsed'));
 
+  document.querySelectorAll('.preview-tab-btn').forEach(b=>
+    b.addEventListener('click', ()=>switchPrevTab(b.dataset.ptab)));
+
   await FS.loadStatus();
 
   let start = hashTopic || 1;
   if (!hashTopic) {
-    for (let n = 1; n <= 30; n++) { if (topicHasBlog(n)) { start = n; break; } }
+    for (let n = 1; n <= 30; n++) {
+      if (topicHasBlog(n) || topicHasCode(n)) { start = n; break; }
+    }
   }
   currentTopic = start;
 
@@ -557,7 +693,8 @@ function renderPost(n) {
       await FS.loadStatus();
       await FS.refresh(currentTopic);
       refreshSidebarStatus();
-      renderPost(currentTopic);
+      if (currentPrevTab==='blog') renderPost(currentTopic);
+      else renderCodeSnippets(currentTopic);
     }
   });
 })();

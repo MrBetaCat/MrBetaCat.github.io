@@ -563,7 +563,6 @@ function flashBtn(id, text) {
 let currentTopic      = 1;
 let currentTab        = 'blog';
 let snippets          = [];
-let snippetModes      = [];
 let currentSnippetIdx = 0;
 let blogSaveTimer     = null;
 let codeSaveTimer     = null;
@@ -712,7 +711,6 @@ async function saveCodeData() {
 
 function renderCodeTab() {
   snippets = getCodeData();
-  snippetModes = snippets.map(()=>'edit');
   if (currentSnippetIdx >= snippets.length) currentSnippetIdx = 0;
   renderSnippetTabsBar();
   renderSnippetEditor();
@@ -735,27 +733,21 @@ function renderSnippetEditor() {
     </div>`; return;
   }
   const s = snippets[currentSnippetIdx];
-  const mode = snippetModes[currentSnippetIdx]||'edit';
   const langs = ['python','typescript','javascript','bash','json','text'];
   const langOpts = langs.map(l=>`<option value="${l}"${l===s.language?' selected':''}>${l}</option>`).join('');
-  const bodyContent = mode==='edit'
-    ? `<textarea class="code-textarea" id="snippet-textarea" spellcheck="false" autocorrect="off" autocapitalize="off">${esc(s.body)}</textarea>`
-    : `<div class="code-preview-wrap"><pre class="code-block" data-lang="${esc(s.language)}"><code>${renderHighlighted(s.body,s.language)}</code></pre></div>`;
   container.innerHTML=`
     <div class="snippet-header">
       <input type="text" class="snippet-name-input" id="snippet-name" value="${esc(s.name)}" placeholder="Snippet name…">
       <select class="lang-select" id="snippet-lang">${langOpts}</select>
-      <div class="snippet-mode-btns">
-        <button class="mode-btn${mode==='edit'?' active':''}" id="snip-btn-edit">Edit</button>
-        <button class="mode-btn${mode==='preview'?' active':''}" id="snip-btn-preview">Preview</button>
-      </div>
       <button class="btn secondary" id="snip-copy-btn">Copy</button>
     </div>
-    <div class="snippet-body" id="snippet-body">${bodyContent}</div>`;
-  wireSnippetEvents(mode);
+    <div class="snippet-body" id="snippet-body">
+      <textarea class="code-textarea" id="snippet-textarea" spellcheck="false" autocorrect="off" autocapitalize="off">${esc(s.body)}</textarea>
+    </div>`;
+  wireSnippetEvents();
 }
 
-function wireSnippetEvents(mode) {
+function wireSnippetEvents() {
   document.getElementById('snippet-name').addEventListener('input', function() {
     snippets[currentSnippetIdx].name = this.value;
     const tabs = document.querySelectorAll('.snippet-tab');
@@ -765,15 +757,14 @@ function wireSnippetEvents(mode) {
   document.getElementById('snippet-lang').addEventListener('change', function() {
     snippets[currentSnippetIdx].language = this.value;
     clearTimeout(codeSaveTimer); codeSaveTimer=setTimeout(saveCodeData,800);
-    if (snippetModes[currentSnippetIdx]==='preview') setSnippetMode('preview');
   });
-  document.getElementById('snip-btn-edit').addEventListener('click',    ()=>setSnippetMode('edit'));
-  document.getElementById('snip-btn-preview').addEventListener('click', ()=>setSnippetMode('preview'));
   document.getElementById('snip-copy-btn').addEventListener('click', async()=>{
+    const ta=document.getElementById('snippet-textarea');
+    if (ta) snippets[currentSnippetIdx].body=ta.value;
     const ok = await copyToClipboard(snippets[currentSnippetIdx].body);
     if (ok) flashBtn('snip-copy-btn','✓ Copied!');
   });
-  if (mode==='edit') wireTextarea();
+  wireTextarea();
 }
 
 function wireTextarea() {
@@ -793,43 +784,22 @@ function wireTextarea() {
   setTimeout(()=>ta.focus(),0);
 }
 
-function setSnippetMode(mode) {
-  if (snippetModes[currentSnippetIdx]==='edit') {
-    const ta=document.getElementById('snippet-textarea');
-    if (ta) snippets[currentSnippetIdx].body=ta.value;
-  }
-  snippetModes[currentSnippetIdx]=mode;
-  document.getElementById('snip-btn-edit')?.classList.toggle('active',mode==='edit');
-  document.getElementById('snip-btn-preview')?.classList.toggle('active',mode==='preview');
-  const body=document.getElementById('snippet-body'); if (!body) return;
-  const s=snippets[currentSnippetIdx];
-  if (mode==='edit') {
-    body.innerHTML=`<textarea class="code-textarea" id="snippet-textarea" spellcheck="false" autocorrect="off" autocapitalize="off">${esc(s.body)}</textarea>`;
-    wireTextarea();
-  } else {
-    body.innerHTML=`<div class="code-preview-wrap"><pre class="code-block" data-lang="${esc(s.language)}"><code>${renderHighlighted(s.body,s.language)}</code></pre></div>`;
-  }
-}
-
 function selectSnippet(idx) {
-  if (snippetModes[currentSnippetIdx]==='edit') {
-    const ta=document.getElementById('snippet-textarea');
-    if (ta) snippets[currentSnippetIdx].body=ta.value;
-  }
+  const ta=document.getElementById('snippet-textarea');
+  if (ta && snippets[currentSnippetIdx]) snippets[currentSnippetIdx].body=ta.value;
   currentSnippetIdx=idx; renderSnippetTabsBar(); renderSnippetEditor();
 }
 
 function deleteSnippet(event, idx) {
   event.stopPropagation();
   if (!confirm(`Delete "${snippets[idx]?.name||`Snippet ${idx+1}`}"?`)) return;
-  snippets.splice(idx,1); snippetModes.splice(idx,1);
+  snippets.splice(idx,1);
   currentSnippetIdx=Math.max(0,Math.min(currentSnippetIdx,snippets.length-1));
   saveCodeData(); renderSnippetTabsBar(); renderSnippetEditor();
 }
 
 function addSnippet() {
   snippets.push({name:`Snippet ${snippets.length+1}`,language:'python',body:''});
-  snippetModes.push('edit');
   currentSnippetIdx=snippets.length-1;
   saveCodeData(); renderSnippetTabsBar(); renderSnippetEditor();
 }
