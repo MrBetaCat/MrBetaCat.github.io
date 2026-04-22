@@ -145,7 +145,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--m
 #blog-controls{
   display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-shrink:0;flex-wrap:wrap;
 }
-.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:auto}
 #blog-controls .spacer{flex:1}
 
 /* Save toast */
@@ -623,10 +622,6 @@ function getBlogData() {
 }
 
 async function saveBlogData(auto) {
-  if (!FS.canWrite) {
-    if (!auto) showSaveToast('⚠ Run node server.js and open via localhost to save');
-    return;
-  }
   try {
     await lsSet(blogKey(currentTopic), JSON.stringify({
       title:    document.getElementById('blog-title').value,
@@ -700,7 +695,6 @@ function getCodeData() {
 }
 
 async function saveCodeData() {
-  if (!FS.canWrite) return;
   try {
     await lsSet(codeKey(currentTopic), JSON.stringify(
       snippets.map(s=>({name:s.name,language:s.language,body:s.body}))
@@ -815,12 +809,7 @@ function addSnippet() {
   document.getElementById('sidebar-toggle').addEventListener('click',()=>
     document.getElementById('sidebar').classList.toggle('collapsed'));
 
-  const saveBtn = document.getElementById('btn-save-blog');
-  if (!FS.canWrite) {
-    saveBtn.disabled = true;
-    saveBtn.title = 'Run node server.js and open via http://localhost:3000 to save';
-  }
-  saveBtn.addEventListener('click', ()=>saveBlogData(false));
+  document.getElementById('btn-save-blog').addEventListener('click', ()=>saveBlogData(false));
   document.getElementById('btn-copy-md').addEventListener('click',   copyMarkdown);
   document.getElementById('btn-copy-html').addEventListener('click', copyRenderedHtml);
   document.getElementById('btn-add-snippet').addEventListener('click', addSnippet);
