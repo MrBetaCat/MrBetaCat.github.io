@@ -1,21 +1,19 @@
 'use strict';
 /**
- * sprint-storage.js  v4 — fetch-based, no folder picker
+ * sprint-storage.js — fetch-based storage, no folder picker
  *
- * LOCAL  (http://localhost — run `node server.js`):
- *   Reads  via fetch() from relative URLs
- *   Writes via PUT    /api/write?path=…  (server.js writes the file)
- *   Deletes via DELETE /api/write?path=…
+ * READS (both localhost and GitHub Pages):
+ *   fetch() from relative URLs — static files served by server.js or GitHub Pages CDN.
+ *   On localhost a cache-buster (?_=timestamp) is added so edits appear immediately.
+ *   On GitHub Pages no cache-buster is used — CDN serves the committed version.
  *
- * DEPLOYED (https:// — GitHub Pages):
- *   Reads  via fetch() from relative URLs  ← static files committed to repo
- *   Writes blocked                         ← read-only for visitors
- *
- * No folder picker, no permissions, no tokens.
- * To edit: run `node server.js`, open http://localhost:3000
+ * WRITES (requires server.js to be running):
+ *   PUT    /api/write?path=…   (server.js writes the file)
+ *   DELETE /api/write?path=…
+ *   On GitHub Pages these return 404; the caller's catch block surfaces the error.
  *
  * Content layout (relative to repo root):
- *   content/slides/t{N}.b64          base64-encoded .pptx bytes
+ *   content/slides/t{N}.url          relative path or URL to HTML slides
  *   content/handout/t{N}.md          plain markdown
  *   content/blog/t{N}.md             YAML frontmatter + markdown body
  *   content/code_examples/t{N}.json  JSON array of code snippets
@@ -24,7 +22,6 @@
 
 const FS = (() => {
   const IS_LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
   let mem = {}; // in-memory cache: key → decoded value string
 
   // ── Key → relative file path ──────────────────────────────────────────────
@@ -61,7 +58,10 @@ const FS = (() => {
   // ── HTTP helpers ──────────────────────────────────────────────────────────
   async function fetchRead(path) {
     try {
-      const r = await fetch(`${path}?_=${Date.now()}`);
+      // Cache-buster only on localhost so local edits are always fresh;
+      // on GitHub Pages the CDN should serve the committed version without extra origin hits.
+      const url = IS_LOCAL ? `${path}?_=${Date.now()}` : path;
+      const r = await fetch(url);
       return r.ok ? await r.text() : null;
     } catch { return null; }
   }
@@ -98,7 +98,7 @@ const FS = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────
   return {
-    /** Always true — writes use relative /api/write and work on any host running server.js. */
+    /** Writes use relative /api/write — works on any host running server.js. */
     get canWrite() { return true; },
 
     /** No-op — kept so pages can call await FS.init() without errors. */
