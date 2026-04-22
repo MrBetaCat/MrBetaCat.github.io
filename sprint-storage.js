@@ -98,11 +98,11 @@ const FS = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────
   return {
-    /** True when running on localhost — writes are allowed. */
-    get canWrite() { return IS_LOCAL; },
+    /** Always true — writes use relative /api/write and work on any host running server.js. */
+    get canWrite() { return true; },
 
     /** No-op — kept so pages can call await FS.init() without errors. */
-    async init() { return IS_LOCAL ? 'local' : 'remote'; },
+    async init() { return 'ready'; },
 
     /** Load content/status.json for sidebar status dots. */
     async loadStatus() {
@@ -134,9 +134,8 @@ const FS = (() => {
     // ── Sync read from in-memory cache ────────────────────────────────────
     get(key) { return mem[key] ?? null; },
 
-    // ── Async write — local server only ──────────────────────────────────
+    // ── Async write ───────────────────────────────────────────────────────
     async set(key, val) {
-      if (!IS_LOCAL) throw new Error('Read-only on deployed site. Edit locally with `node server.js`.');
       const path = keyToPath(key);
       if (!path) throw new Error(`Unknown key: ${key}`);
       await fetchWrite(path, encodeForDisk(key, val));
@@ -148,9 +147,8 @@ const FS = (() => {
       }
     },
 
-    // ── Async delete — local server only ─────────────────────────────────
+    // ── Async delete ──────────────────────────────────────────────────────
     async del(key) {
-      if (!IS_LOCAL) throw new Error('Read-only on deployed site.');
       const path = keyToPath(key);
       if (!path) return;
       await fetchDelete(path);

@@ -467,7 +467,6 @@ function renderSlidesTab() {
 
 async function saveSlidesUrl() {
   const url = document.getElementById('slide-url-input').value.trim();
-  if (!FS.canWrite) { showViewToast('⚠ Run server.js locally to save', true); return; }
   if (!url) { await clearSlidesUrl(); return; }
   try {
     await lsSet(key(currentTopic, 'slides'), url);
@@ -478,7 +477,6 @@ async function saveSlidesUrl() {
 }
 
 async function clearSlidesUrl() {
-  if (!FS.canWrite) { showViewToast('⚠ Run server.js locally to edit', true); return; }
   try {
     await lsRemove(key(currentTopic, 'slides'));
     refreshSidebarStatus();
@@ -612,7 +610,6 @@ document.getElementById('handout-textarea').addEventListener('input', function (
   updateCharCount();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    if (!FS.canWrite) return; // silently skip — not local or no folder
     try {
       await lsSet(key(currentTopic, 'handout'), this.value);
       refreshSidebarStatus();
